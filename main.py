@@ -1,156 +1,170 @@
-import os
 import tkinter as tk
-from tkinter import ttk, colorchooser, filedialog, messagebox
+from tkinter import ttk, messagebox, colorchooser
 from config_manager import ConfigManager
 
-class App(tk.Tk):
+
+class AppConfiguracion(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Aplicación de Escritorio - Gestión de Archivos")
-        self.geometry("500x400")
 
         self.config_data = ConfigManager.cargar_configuracion()
-        self._crear_menu()
-        self._crear_interfaz_principal()
-        self.aplicar_estilos()
 
-    def _crear_menu(self):
+        self.title("Sistema de Gestión de Configuración")
+        self.geometry("700x520")
+        self.minsize(600, 450)
+
+        self.style = ttk.Style(self)
+        self.style.theme_use("clam")
+
+        self.var_nombre = tk.StringVar(value=self.config_data.get("nombre_usuario", ""))
+        self.var_fuente = tk.IntVar(value=self.config_data.get("tamano_fuente", 12))
+        self.var_color_barra = tk.StringVar(value=self.config_data.get("color_barra", "#0055A5"))
+        self.var_color_letra = tk.StringVar(value=self.config_data.get("color_letra", "#FFFFFF"))
+
+        self.crear_menu()
+
+        self.container = ttk.Frame(self)
+        self.container.pack(fill="both", expand=True)
+
+        self.mostrar_menu_principal()
+        self.aplicar_estilos_dinamicos()
+
+    def crear_menu(self):
         menubar = tk.Menu(self)
-
-        menu_archivo = tk.Menu(menubar, tearoff=0)
-        menu_archivo.add_command(label="Nuevo (Simulado)", command=self.simular)
-        menu_archivo.add_command(label="Abrir (Simulado)", command=self.simular)
-        menu_archivo.add_separator()
-        menu_archivo.add_command(label="Salir", command=self.quit)
-        menubar.add_cascade(label="Archivo", menu=menu_archivo)
-
-        menu_edicion = tk.Menu(menubar, tearoff=0)
-        menu_edicion.add_command(label="Deshacer (Simulado)", command=self.simular)
-        menu_edicion.add_command(label="Rehacer (Simulado)", command=self.simular)
-        menubar.add_cascade(label="Edición", menu=menu_edicion)
-
-        menu_ver = tk.Menu(menubar, tearoff=0)
-        menu_ver.add_command(label="Zoom (Simulado)", command=self.simular)
-        menubar.add_cascade(label="Ver", menu=menu_ver)
-
-        menu_settings = tk.Menu(menubar, tearoff=0)
-        menu_settings.add_command(label="Configuración", command=self.abrir_ventana_settings)
-        menubar.add_cascade(label="Settings", menu=menu_settings)
-
         self.config(menu=menubar)
 
-    def _crear_interfaz_principal(self):
-        self.frame_contenido = tk.Frame(self)
-        self.frame_contenido.pack(fill="both", expand=True, padx=20, pady=20)
+        menu_settings = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Settings", menu=menu_settings)
+        menu_settings.add_command(label="Configuración", command=self.mostrar_ventana_configuracion)
+        menu_settings.add_separator()
+        menu_settings.add_command(label="Salir", command=self.quit)
 
-        self.lbl_bienvenida = tk.Label(self.frame_contenido)
-        self.lbl_bienvenida.pack(pady=10)
+    def aplicar_estilos_dinamicos(self):
+        color_barra = self.var_color_barra.get()
+        color_letra = self.var_color_letra.get()
+        tamano_fuente = self.var_fuente.get()
 
-        self.lbl_info = tk.Label(self.frame_contenido)
-        self.lbl_info.pack(pady=10)
+        self.style.configure("Header.TFrame", background=color_barra)
+        self.style.configure("Header.TLabel", background=color_barra, foreground=color_letra,
+                             font=("Helvetica", max(tamano_fuente + 4, 14), "bold"))
+        self.style.configure("SubHeader.TLabel", background=color_barra, foreground=color_letra,
+                             font=("Helvetica", tamano_fuente))
 
-        self.lbl_foto = tk.Label(self.frame_contenido)
-        self.lbl_foto.pack(pady=10)
+        self.style.configure("MainBody.TLabel", font=("Helvetica", tamano_fuente))
+        self.style.configure("MainBody.TButton", font=("Helvetica", tamano_fuente), padding=6)
 
-    def aplicar_estilos(self):
-        color_barra = self.config_data.get("color_barra", "#0055A5")
-        color_letra = self.config_data.get("color_letra", "#000000")
-        tamano = self.config_data.get("tamano_fuente", 12)
+    def limpiar_contenedor(self):
+        for widget in self.container.winfo_children():
+            widget.destroy()
 
-        self.config(bg=color_barra)
-        self.frame_contenido.config(bg=color_barra)
+    def mostrar_menu_principal(self):
+        self.limpiar_contenedor()
 
-        self.lbl_bienvenida.config(
-            text=f"¡Bienvenido, {self.config_data['nombre_usuario']}!",
-            fg=color_letra, bg=color_barra, font=("Arial", tamano, "bold")
-        )
-        self.lbl_info.config(
-            text=f"Idioma: {self.config_data['idioma']} | Tema: {self.config_data['tema']}",
-            fg=color_letra, bg=color_barra, font=("Arial", tamano)
-        )
-        foto = self.config_data.get("foto_perfil", "")
-        texto_foto = f"Foto: {os.path.basename(foto)}" if foto and os.path.exists(foto) else "[ Sin foto ]"
-        self.lbl_foto.config(text=texto_foto, fg=color_letra, bg=color_barra, font=("Arial", tamano))
+        header_frame = ttk.Frame(self.container, style="Header.TFrame", padding=20)
+        header_frame.pack(fill="x", side="top")
 
-    def simular(self):
-        messagebox.showinfo("Simulación", "Esta es una opción simulada del menú.")
+        lbl_titulo = ttk.Label(header_frame, text="Panel Principal de Administración", style="Header.TLabel")
+        lbl_titulo.pack(anchor="w")
 
-    def abrir_ventana_settings(self):
-        VentanaSettings(self)
+        usuario_actual = self.var_nombre.get() if self.var_nombre.get() else "Sin usuario"
+        lbl_sub = ttk.Label(header_frame, text=f"Bienvenido/a, {usuario_actual}", style="SubHeader.TLabel")
+        lbl_sub.pack(anchor="w", pady=(5, 0))
 
+        # Cuerpo principal
+        body_frame = ttk.Frame(self.container, padding=30)
+        body_frame.pack(fill="both", expand=True)
 
-class VentanaSettings(tk.Toplevel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.title("Settings")
-        self.geometry("400x450")
-        self.data = parent.config_data.copy()
+        lbl_info = ttk.Label(body_frame,
+                             text="Selecciona 'Settings > Configuración' en el menú para personalizar la interfaz.",
+                             style="MainBody.TLabel")
+        lbl_info.pack(pady=20)
 
-        pad = {'padx': 10, 'pady': 5}
+        btn_config = ttk.Button(body_frame, text="Abrir Configuración", style="MainBody.TButton",
+                                command=self.mostrar_ventana_configuracion)
+        btn_config.pack(pady=10)
 
-        tk.Label(self, text="Nombre:").grid(row=0, column=0, sticky="w", **pad)
-        self.ent_usuario = tk.Entry(self, width=25)
-        self.ent_usuario.insert(0, self.data.get("nombre_usuario", ""))
-        self.ent_usuario.grid(row=0, column=1, **pad)
+    def mostrar_ventana_configuracion(self):
+        win_config = tk.Toplevel(self)
+        win_config.title("Ajustes de Configuración")
+        win_config.grab_set()
 
-        tk.Label(self, text="Tema:").grid(row=1, column=0, sticky="w", **pad)
-        self.cmb_tema = ttk.Combobox(self, values=["Claro", "Oscuro"], state="readonly")
-        self.cmb_tema.set(self.data.get("tema", "Claro"))
-        self.cmb_tema.grid(row=1, column=1, **pad)
+        style_modal = ttk.Style(win_config)
+        style_modal.configure("Modal.TLabel", font=("Helvetica", 10))
+        style_modal.configure("ModalTitle.TLabel", font=("Helvetica", 12, "bold"))
+        style_modal.configure("Modal.TButton", font=("Helvetica", 10), padding=4)
 
-        tk.Label(self, text="Idioma:").grid(row=2, column=0, sticky="w", **pad)
-        self.cmb_idioma = ttk.Combobox(self, values=["es-ES", "en-US"], state="readonly")
-        self.cmb_idioma.set(self.data.get("idioma", "es-ES"))
-        self.cmb_idioma.grid(row=2, column=1, **pad)
+        padding_frame = ttk.Frame(win_config, padding=20)
+        padding_frame.pack(fill="both", expand=True)
 
-        tk.Label(self, text="Tamaño fuente:").grid(row=3, column=0, sticky="w", **pad)
-        self.spn_fuente = tk.Spinbox(self, from_=8, to=32, width=23)
-        self.spn_fuente.delete(0, "end")
-        self.spn_fuente.insert(0, self.data.get("tamano_fuente", 12))
-        self.spn_fuente.grid(row=3, column=1, **pad)
+        ttk.Label(padding_frame, text="Configuración del Sistema", style="ModalTitle.TLabel").grid(row=0, column=0,
+                                                                                                   columnspan=2,
+                                                                                                   pady=(0, 15),
+                                                                                                   sticky="w")
 
-        tk.Button(self, text="Color de Fondo", command=self._elegir_color_barra).grid(row=4, column=0, columnspan=2, **pad)
-        tk.Button(self, text="Color de Letra", command=self._elegir_color_letra).grid(row=5, column=0, columnspan=2, **pad)
-        tk.Button(self, text="Seleccionar Foto", command=self._elegir_foto).grid(row=6, column=0, columnspan=2, **pad)
+        ttk.Label(padding_frame, text="Nombre de usuario:", style="Modal.TLabel").grid(row=1, column=0, sticky="w",
+                                                                                       pady=8, padx=(0, 10))
+        ent_nombre = ttk.Entry(padding_frame, textvariable=self.var_nombre, width=25, font=("Helvetica", 10))
+        ent_nombre.grid(row=1, column=1, sticky="e", pady=8)
 
-        tk.Button(self, text="Guardar", bg="#4CAF50", fg="white", command=self._guardar).grid(row=7, column=0, columnspan=2, pady=15)
+        ttk.Label(padding_frame, text="Tamaño de fuente (Vista Principal):", style="Modal.TLabel").grid(row=2, column=0,
+                                                                                                        sticky="w",
+                                                                                                        pady=8,
+                                                                                                        padx=(0, 10))
+        spn_fuente = ttk.Spinbox(padding_frame, from_=10, to=22, textvariable=self.var_fuente, width=23,
+                                 font=("Helvetica", 10))
+        spn_fuente.grid(row=2, column=1, sticky="e", pady=8)
 
-    def _elegir_color_barra(self):
-        color = colorchooser.askcolor(title="Color de Fondo")
-        if color[1]:
-            self.data["color_barra"] = color[1]
+        ttk.Label(padding_frame, text="Color de Barra / Encabezado:", style="Modal.TLabel").grid(row=3, column=0,
+                                                                                                 sticky="w", pady=8,
+                                                                                                 padx=(0, 10))
+        btn_color_barra = tk.Button(padding_frame, text="  Elegir Color  ", bg=self.var_color_barra.get(),
+                                    command=lambda: self.seleccionar_color(self.var_color_barra, btn_color_barra))
+        btn_color_barra.grid(row=3, column=1, sticky="ew", pady=8)
 
-    def _elegir_color_letra(self):
-        color = colorchooser.askcolor(title="Color de Letra")
-        if color[1]:
-            self.data["color_letra"] = color[1]
+        ttk.Label(padding_frame, text="Color de Letra del Encabezado:", style="Modal.TLabel").grid(row=4, column=0,
+                                                                                                   sticky="w", pady=8,
+                                                                                                   padx=(0, 10))
+        btn_color_letra = tk.Button(padding_frame, text="  Elegir Color  ", bg=self.var_color_letra.get(),
+                                    command=lambda: self.seleccionar_color(self.var_color_letra, btn_color_letra))
+        btn_color_letra.grid(row=4, column=1, sticky="ew", pady=8)
 
-    def _elegir_foto(self):
-        ruta = filedialog.askopenfilename(filetypes=[("Imágenes", "*.png *.jpg *.jpeg")])
-        if ruta:
-            self.data["foto_perfil"] = ruta
+        frame_btn = ttk.Frame(padding_frame)
+        frame_btn.grid(row=5, column=0, columnspan=2, pady=(20, 0), sticky="e")
 
-    def _guardar(self):
-        try:
-            self.data["tamano_fuente"] = int(self.spn_fuente.get())
-        except ValueError:
-            messagebox.showerror("Error", "El tamaño de fuente debe ser numérico.")
-            return
+        btn_guardar = ttk.Button(frame_btn, text="Guardar y Aplicar", style="Modal.TButton",
+                                 command=lambda: self.guardar_y_aplicar(win_config))
+        btn_guardar.pack(side="right", padx=5)
 
-        self.data["nombre_usuario"] = self.ent_usuario.get()
-        self.data["tema"] = self.cmb_tema.get()
-        self.data["idioma"] = self.cmb_idioma.get()
+        btn_cancelar = ttk.Button(frame_btn, text="Cancelar", style="Modal.TButton", command=win_config.destroy)
+        btn_cancelar.pack(side="right", padx=5)
 
-        éxito, mensaje = ConfigManager.guardar_configuracion(self.data)
-        if éxito:
-            self.parent.config_data = self.data
-            self.parent.aplicar_estilos()
-            messagebox.showinfo("Éxito", mensaje)
-            self.destroy()
+        win_config.update_idletasks()
+        win_config.geometry(f"{win_config.winfo_reqwidth() + 40}x{win_config.winfo_reqheight() + 20}")
+        win_config.resizable(False, False)
+
+    def seleccionar_color(self, var_target, btn_target):
+        color = colorchooser.askcolor(initialcolor=var_target.get(), title="Selecciona un color")[1]
+        if color:
+            var_target.set(color)
+            btn_target.config(bg=color)
+
+    def guardar_y_aplicar(self, ventana_modal):
+        self.config_data["nombre_usuario"] = self.var_nombre.get()
+        self.config_data["tamano_fuente"] = self.var_fuente.get()
+        self.config_data["color_barra"] = self.var_color_barra.get()
+        self.config_data["color_letra"] = self.var_color_letra.get()
+
+        exito, mensaje = ConfigManager.guardar_configuracion(self.config_data)
+
+        if exito:
+            self.aplicar_estilos_dinamicos()
+            self.mostrar_menu_principal()
+            messagebox.showinfo("Éxito", "Configuración guardada y aplicada correctamente.", parent=ventana_modal)
+            ventana_modal.destroy()
         else:
-            messagebox.showerror("Error", mensaje)
+            messagebox.showerror("Error", f"No se pudo guardar la configuración: {mensaje}", parent=ventana_modal)
+
 
 if __name__ == "__main__":
-    app = App()
+    app = AppConfiguracion()
     app.mainloop()
